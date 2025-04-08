@@ -349,6 +349,7 @@ impl QosPolicies {
     result
   }
 
+  /// SY : check QoS for match
   fn compliance_failure_wrt_impl(&self, other: &Self) -> Option<QosPolicyId> {
     // TODO: Check for cases where policy is requested, but not offered (None)
 

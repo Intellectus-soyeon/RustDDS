@@ -1,9 +1,5 @@
 use std::{
-  cmp::max,
-  collections::{BTreeMap, BTreeSet},
-  ops::Bound::Included,
-  rc::Rc,
-  sync::{atomic, Arc, Mutex},
+  any::Any, cmp::max, collections::{BTreeMap, BTreeSet}, ops::Bound::Included, rc::Rc, sync::{atomic, Arc, Mutex}
 };
 use core::task::Waker;
 
@@ -20,8 +16,7 @@ use crate::{
   dds::{
     ddsdata::DDSData,
     qos::{
-      policy,
-      policy::{History, Reliability},
+      policy::{self, History, Reliability},
       HasQoSPolicy, QosPolicies,
     },
     statusevents::{
@@ -75,6 +70,7 @@ pub(crate) struct WriterIngredients {
   pub writer_command_receiver: mio_channel::Receiver<WriterCommand>,
   pub writer_command_receiver_waker: Arc<Mutex<Option<Waker>>>,
   pub topic_name: String,
+  pub type_name: String,
   pub(crate) like_stateless: bool, // Usually false (see like_stateless attribute of Writer)
   pub qos_policies: QosPolicies,
   pub status_sender: StatusChannelSender<DataWriterStatus>,
@@ -85,6 +81,8 @@ pub(crate) struct WriterIngredients {
 impl WriterIngredients {
   /// This token is used in timed event mio::channel HeartbeatHandler ->
   /// dpEventWrapper
+  
+  // SY fastdds topic kind == self.guid.entity_id.entity_kind
   pub fn alt_entity_token(&self) -> Token {
     self.guid.entity_id.as_alt_token()
   }
@@ -302,6 +300,8 @@ pub(crate) struct Writer {
 
   /// Writer can only read/write to this topic DDSHistoryCache.
   my_topic_name: String,
+  // 
+  my_type_name: String,
 
   history_buffer: HistoryBuffer,
 
@@ -413,6 +413,8 @@ impl Writer {
       ack_waiter: None,
 
       security_plugins: i.security_plugins,
+
+      my_type_name: i.type_name,
     }
   }
 
@@ -1710,6 +1712,10 @@ impl Writer {
 
   pub fn topic_name(&self) -> &String {
     &self.my_topic_name
+  }
+
+  pub fn type_name(&self) -> &String {
+    &self.my_type_name
   }
 
   fn send_participant_status(&self, event: DomainParticipantStatusEvent) {

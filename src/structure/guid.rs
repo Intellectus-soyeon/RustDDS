@@ -168,6 +168,10 @@ impl EntityKind {
   pub fn is_user_defined(&self) -> bool {
     (self.0 & 0xF0) == 0x00
   }
+
+  pub fn is_with_key(&self) -> bool {
+    (self.0 & 0x0F) == 0x02 || (self.0 & 0x0F) == 0x07
+  }
 }
 
 impl From<u8> for EntityKind {

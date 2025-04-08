@@ -73,6 +73,7 @@ pub(crate) struct ReaderIngredients {
   pub notification_sender: mio_channel::SyncSender<()>,
   pub status_sender: StatusChannelSender<DataReaderStatus>,
   pub topic_name: String,
+  pub type_name: String,
   pub(crate) topic_cache_handle: Arc<Mutex<TopicCache>>, /* A handle to the topic cache in DDS
                                                           * cache */
   pub(crate) like_stateless: bool, // Usually false (see like_stateless attribute of Reader)
@@ -151,6 +152,8 @@ pub(crate) struct Reader {
 
   #[allow(dead_code)] // to avoid warning if no security feature
   security_plugins: Option<SecurityPluginsHandle>,
+
+  type_name: String,
 }
 
 // If we are assembling a fragment, but it does not receive any updates
@@ -213,6 +216,8 @@ impl Reader {
       participant_status_sender,
 
       security_plugins: i.security_plugins,
+
+      type_name: i.type_name,
     }
   }
   // TODO: check if it's necessary to implement different handlers for discovery
@@ -1413,6 +1418,10 @@ impl Reader {
 
   pub fn topic_name(&self) -> &String {
     &self.topic_name
+  }
+
+  pub fn type_name(&self) -> &String {
+    &self.type_name
   }
 
   fn acquire_the_topic_cache_guard(&self) -> MutexGuard<TopicCache> {

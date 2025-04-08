@@ -29,9 +29,7 @@ fn main() {
     .unwrap_or_else(|e| panic!("DomainParticipant construction failed: {e:?}"));
 
   let qos = QosPolicyBuilder::new()
-    .reliability(Reliability::Reliable {
-      max_blocking_time: rustdds::Duration::from_secs(1),
-    })
+    .reliability(Reliability::BestEffort)
     .build();
 
   let topic = domain_participant
@@ -39,8 +37,8 @@ fn main() {
       // We can internally call the Rust type "HelloWorldData" whatever we want,
       // but these strings must match whatever our counterparts expect
       // to see over RTPS.
-      "HelloWorldData_Msg".to_string(),  // topic name
-      "HelloWorldData::Msg".to_string(), // type name
+      "hello_world_topic_sy".to_string(),  // topic name
+      "HelloWorld".to_string(), // type name
       &qos,
       TopicKind::WithKey,
     )
@@ -60,7 +58,7 @@ fn main() {
   smol::block_on(async {
     let mut datawriter_event_stream = writer.as_async_status_stream();
     let (write_trigger_sender, write_trigger_receiver) = smol::channel::bounded(1);
-    let mut match_timeout_timer = futures::FutureExt::fuse(Timer::after(Duration::from_secs(10)));
+    let mut match_timeout_timer = futures::FutureExt::fuse(Timer::after(Duration::from_secs(100)));
 
     println!("Ready to say hello");
     loop {

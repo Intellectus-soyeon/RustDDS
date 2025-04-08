@@ -154,7 +154,7 @@ pub struct SubscriptionBuiltinTopicData {
   key: GUID,
   participant_key: Option<GUID>,
   pub topic_name: String,
-  type_name: String,
+  pub type_name: String,
   durability: Option<Durability>,
   deadline: Option<Deadline>,
   latency_budget: Option<LatencyBudget>,
@@ -716,6 +716,10 @@ impl PublicationBuiltinTopicData {
 
   pub fn topic_name(&self) -> &String {
     &self.topic_name
+  }
+
+  pub fn type_name(&self) -> &String {
+    &self.type_name
   }
 
   pub fn to_topic_data(&self) -> TopicBuiltinTopicData {

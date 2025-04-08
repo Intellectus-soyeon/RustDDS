@@ -119,6 +119,8 @@ impl DomainParticipantBuilder {
     let candidate_participant_guid = GUID::new_participant_guid();
     #[cfg(not(feature = "security"))]
     let participant_guid = candidate_participant_guid;
+    println!("GUID :{:?}", &participant_guid);
+
     // If security plugins are present, security is enabled
     #[cfg(feature = "security")]
     let participant_guid = if let Some(ref mut security_plugins) = self.security_plugins.as_mut() {

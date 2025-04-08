@@ -1,8 +1,5 @@
 use std::{
-  collections::HashMap,
-  rc::Rc,
-  sync::{Arc, RwLock},
-  time::{Duration, Instant},
+  any::Any, collections::HashMap, rc::Rc, sync::{Arc, RwLock}, time::{Duration, Instant}
 };
 
 use log::{debug, error, info, trace, warn};
@@ -693,9 +690,12 @@ impl DPEventLoop {
     }
   }
 
+  ///// SY matching check
   fn remote_reader_discovered(&mut self, remote_reader: &DiscoveredReaderData) {
     for writer in self.writers.values_mut() {
-      if remote_reader.subscription_topic_data.topic_name() == writer.topic_name() {
+      if remote_reader.subscription_topic_data.topic_name() == writer.topic_name() 
+      && remote_reader.subscription_topic_data.type_name() == writer.type_name() 
+      && remote_reader.subscription_topic_data.key().entity_id.entity_kind.is_with_key() == writer.guid().entity_id.entity_kind.is_with_key() {
         #[cfg(not(feature = "security"))]
         let match_to_reader = true;
         #[cfg(feature = "security")]
@@ -771,7 +771,9 @@ impl DPEventLoop {
   fn remote_writer_discovered(&mut self, remote_writer: &DiscoveredWriterData) {
     // update writer proxies in local readers
     for reader in self.message_receiver.available_readers.values_mut() {
-      if &remote_writer.publication_topic_data.topic_name == reader.topic_name() {
+      if &remote_writer.publication_topic_data.topic_name == reader.topic_name() 
+      && &remote_writer.publication_topic_data.type_name == reader.type_name() 
+      && remote_writer.publication_topic_data.key.entity_id.entity_kind.is_with_key() == reader.guid().entity_id.entity_kind.is_with_key() {
         #[cfg(not(feature = "security"))]
         let match_to_writer = true;
         #[cfg(feature = "security")]

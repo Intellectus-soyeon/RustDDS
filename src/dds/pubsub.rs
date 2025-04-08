@@ -474,7 +474,7 @@ impl InnerPublisher {
       .modify_by(&optional_qos.unwrap_or_else(QosPolicies::qos_none));
 
     let entity_id =
-      self.unwrap_or_new_entity_id(entity_id_opt, EntityKind::WRITER_WITH_KEY_USER_DEFINED);
+      self.unwrap_or_new_entity_id(entity_id_opt, EntityKind::WRITER_NO_KEY_USER_DEFINED);
     let dp = self
       .participant()
       .ok_or("upgrade fail")
@@ -536,6 +536,7 @@ impl InnerPublisher {
       writer_command_receiver: hccc_download,
       writer_command_receiver_waker: Arc::clone(&writer_waker),
       topic_name: topic.name(),
+      type_name: topic.get_type().name().to_string(),
       like_stateless: writer_like_stateless,
       qos_policies: writer_qos.clone(),
       status_sender,
@@ -1040,7 +1041,7 @@ impl InnerSubscriber {
       .modify_by(&optional_qos.unwrap_or_else(QosPolicies::qos_none));
 
     let entity_id =
-      self.unwrap_or_new_entity_id(entity_id_opt, EntityKind::READER_WITH_KEY_USER_DEFINED);
+      self.unwrap_or_new_entity_id(entity_id_opt, EntityKind::READER_NO_KEY_USER_DEFINED);
 
     let dp = match self.participant() {
       Some(dp) => dp,
@@ -1121,6 +1122,7 @@ impl InnerSubscriber {
       notification_sender: send,
       status_sender,
       topic_name: topic.name(),
+      type_name: topic.get_type().name().to_string(),
       topic_cache_handle: topic_cache_handle.clone(),
       like_stateless: reader_like_stateless,
       qos_policy: qos.clone(),
