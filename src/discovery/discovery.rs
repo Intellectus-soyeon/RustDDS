@@ -22,26 +22,19 @@ use crate::{
     readcondition::ReadCondition,
     result::{CreateError, CreateResult},
     statusevents::{DomainParticipantStatusEvent, LostReason, StatusChannelSender},
-  },
-  discovery::{
+  }, discovery::{
     discovery_db::{discovery_db_read, discovery_db_write, DiscoveredVia, DiscoveryDB},
     sedp_messages::{
       DiscoveredReaderData, DiscoveredTopicData, DiscoveredWriterData, Endpoint_GUID,
       ParticipantMessageData, ParticipantMessageDataKind,
     },
     spdp_participant_data::{Participant_GUID, SpdpDiscoveredParticipantData},
-  },
-  polling::{new_simple_timer, TimerPolicy},
-  rtps::constant::*,
-  serialization::{pl_cdr_adapters::*, CDRDeserializerAdapter, CDRSerializerAdapter},
-  structure::{
+  }, policy::DataRepresentation, polling::{new_simple_timer, TimerPolicy}, rtps::constant::*, serialization::{pl_cdr_adapters::*, CDRDeserializerAdapter, CDRSerializerAdapter}, structure::{
     duration::Duration,
     entity::RTPSEntity,
     guid::{EntityId, GuidPrefix, GUID},
     time::Timestamp,
-  },
-  with_key::{DataReader, DataWriter, Sample},
-  DomainParticipant,
+  }, with_key::{DataReader, DataWriter, Sample}, DomainParticipant
 };
 // This module implements the control logic of the Discovery process.
 //
@@ -300,6 +293,7 @@ impl Discovery {
     history: Some(History::KeepLast { depth: 1 }),
     resource_limits: None,
     lifespan: None,
+    data_representation: Some(DataRepresentation::XcorData),
     #[cfg(feature = "security")]
     property: None,
   };
@@ -1950,6 +1944,7 @@ impl Discovery {
       //   max_samples: std::i32::MAX,
       //   max_samples_per_instance: std::i32::MAX,
       // })
+      .data_representation(DataRepresentation::XcorData)
       .build()
   }
 
@@ -1987,6 +1982,7 @@ impl Discovery {
       //   max_samples: std::i32::MAX,
       //   max_samples_per_instance: std::i32::MAX,
       // })
+      .data_representation(DataRepresentation::XcorData)
       .build()
   }
 

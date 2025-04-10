@@ -62,6 +62,10 @@ pub enum QosPolicyId {
   Lifespan,
   // DurabilityService, // 22
   Property, // No Id in the security spec (But this is from older DDS/RTPs spec.)
+
+  // 
+  DataRepresentation,   // 23
+  // TypeConsistencyEnforcement //24
 }
 
 /// Utility for building [QosPolicies]
@@ -79,6 +83,7 @@ pub struct QosPolicyBuilder {
   history: Option<policy::History>,
   resource_limits: Option<policy::ResourceLimits>,
   lifespan: Option<policy::Lifespan>,
+  data_representation: Option<policy::DataRepresentation>,
   #[cfg(feature = "security")]
   property: Option<policy::Property>,
 }
@@ -172,6 +177,12 @@ impl QosPolicyBuilder {
     self
   }
 
+  #[must_use]
+  pub const fn data_representation(mut self, data_representation: policy::DataRepresentation) -> Self {
+    self.data_representation = Some(data_representation);
+    self
+  }
+
   #[cfg(feature = "security")]
   #[must_use]
   pub fn property(mut self, property: policy::Property) -> Self {
@@ -193,6 +204,7 @@ impl QosPolicyBuilder {
       history: self.history,
       resource_limits: self.resource_limits,
       lifespan: self.lifespan,
+      data_representation: self.data_representation,
       #[cfg(feature = "security")]
       property: self.property,
     }
@@ -217,6 +229,7 @@ pub struct QosPolicies {
   pub(crate) history: Option<policy::History>,
   pub(crate) resource_limits: Option<policy::ResourceLimits>,
   pub(crate) lifespan: Option<policy::Lifespan>,
+  pub(crate) data_representation: Option<policy::DataRepresentation>,
   #[cfg(feature = "security")]
   pub(crate) property: Option<policy::Property>,
 }
@@ -296,6 +309,10 @@ impl QosPolicies {
     self.lifespan
   }
 
+  pub const fn data_representation(&self) -> Option<policy::DataRepresentation> {
+    self.data_representation
+  }
+
   #[cfg(feature = "security")]
   pub fn property(&self) -> Option<policy::Property> {
     self.property.clone()
@@ -320,6 +337,7 @@ impl QosPolicies {
       history: other.history.or(self.history),
       resource_limits: other.resource_limits.or(self.resource_limits),
       lifespan: other.lifespan.or(self.lifespan),
+      data_representation: other.data_representation.or(self.data_representation),
       #[cfg(feature = "security")]
       property: other.property.clone().or(self.property.clone()),
     }
@@ -426,6 +444,13 @@ impl QosPolicies {
       }
     }
 
+    // check Data Representation
+    if let (Some(off), Some(req)) = (self.data_representation, other.data_representation) {
+      if off != req {
+        return Some(QosPolicyId::DataRepresentation);
+      }
+    }
+
     // default value. no incompatibility detected.
     None
   }
@@ -451,6 +476,7 @@ impl QosPolicies {
       history,
       resource_limits,
       lifespan,
+      data_representation,
       #[cfg(feature = "security")]
         property: _, // TODO: properties to parameter list?
     } = self;
@@ -533,6 +559,8 @@ impl QosPolicies {
     emit_option!(PID_RESOURCE_LIMITS, resource_limits, policy::ResourceLimits);
     emit_option!(PID_LIFESPAN, lifespan, policy::Lifespan);
 
+    emit_option!(PID_DATA_REPRESENTATION, data_representation, policy::DataRepresentation);
+
     Ok(pl)
   }
 
@@ -597,6 +625,8 @@ impl QosPolicies {
     let resource_limits: Option<policy::ResourceLimits> = get_option!(PID_RESOURCE_LIMITS);
     let lifespan: Option<policy::Lifespan> = get_option!(PID_LIFESPAN);
 
+    let data_representation: Option<policy::DataRepresentation> = get_option!(PID_DATA_REPRESENTATION);
+
     #[cfg(feature = "security")]
     let property: Option<policy::Property> = None; // TODO: Should also properties be read?
 
@@ -615,6 +645,7 @@ impl QosPolicies {
       history,
       resource_limits,
       lifespan,
+      data_representation,
       #[cfg(feature = "security")]
       property,
     })
@@ -914,6 +945,13 @@ pub mod policy {
     pub max_samples: i32,
     pub max_instances: i32,
     pub max_samples_per_instance: i32,
+  }
+
+  #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Writable, Readable)]
+  pub enum DataRepresentation {
+    XcorData,
+    XmlData,
+    Xcor2Data,
   }
 
   #[cfg(feature = "security")]

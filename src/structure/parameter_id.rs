@@ -64,6 +64,8 @@ impl ParameterId {
   pub const PID_KEY_HASH: Self = Self { value: 0x0070 };
   pub const PID_STATUS_INFO: Self = Self { value: 0x0071 };
 
+  pub const PID_DATA_REPRESENTATION: Self = Self { value: 0x0073 };
+  
   // From Specification "Remote Procedure Calls over DDS v1.0"
   // Section 7.6.2.1.1 Extended PublicationBuiltin TopicData and
   // 7.6.2.1.2 Extended SubscriptionBuiltinTopicData

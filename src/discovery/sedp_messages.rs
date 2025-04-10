@@ -21,29 +21,21 @@ use crate::{
     },
     topic::{Topic, TopicDescription},
     with_key::datawriter::DataWriter,
-  },
-  discovery::content_filter_property::ContentFilterProperty,
-  messages::submessages::elements::{
+  }, discovery::content_filter_property::ContentFilterProperty, messages::submessages::elements::{
     parameter::Parameter,
     parameter_list::{ParameterList, ParameterListable},
-  },
-  network::{constant::user_traffic_unicast_port, util::get_local_unicast_locators},
-  rtps::{rtps_reader_proxy::RtpsReaderProxy, rtps_writer_proxy::RtpsWriterProxy},
-  serialization::{
+  }, network::{constant::user_traffic_unicast_port, util::get_local_unicast_locators}, policy::DataRepresentation, rtps::{rtps_reader_proxy::RtpsReaderProxy, rtps_writer_proxy::RtpsWriterProxy}, serialization::{
     pl_cdr_adapters::{
       PlCdrDeserialize, PlCdrDeserializeError, PlCdrSerialize, PlCdrSerializeError,
     },
     speedy_pl_cdr_helpers::*,
     RepresentationIdentifier,
-  },
-  structure::{
+  }, structure::{
     entity::RTPSEntity,
     guid::{GuidPrefix, GUID},
-    locator,
-    locator::Locator,
+    locator::{self, Locator},
     parameter_id::ParameterId,
-  },
-  Key, Keyed,
+  }, Key, Keyed
 };
 #[cfg(feature = "security")]
 use crate::security::EndpointSecurityInfo;
@@ -176,6 +168,9 @@ pub struct SubscriptionBuiltinTopicData {
   related_datawriter_key: Option<GUID>,
   topic_aliases: Option<Vec<String>>, /* Option is a bit redundant, but it indicates if the
                                        * parameter was present or not */
+
+  data_representation: Option<DataRepresentation>,
+
   // DDS Security:
   #[cfg(feature = "security")]
   security_info: Option<EndpointSecurityInfo>,
@@ -214,6 +209,8 @@ impl SubscriptionBuiltinTopicData {
       service_instance_name: None,  // Note: Not implemented
       related_datawriter_key: None, // Note: Not implemented
       topic_aliases: None,          // Note: Not implemented
+
+      data_representation: None,
 
       // DDS Security
       #[cfg(feature = "security")]
@@ -256,6 +253,8 @@ impl SubscriptionBuiltinTopicData {
     self.time_based_filter = qos.time_based_filter;
     self.presentation = qos.presentation;
     self.lifespan = qos.lifespan;
+    self.data_representation = qos.data_representation;
+
     // history does not exist
     // resource_limits does not exist
   }
@@ -274,7 +273,7 @@ impl SubscriptionBuiltinTopicData {
       history: None, // SubscriptionBuiltinTopicData does not contain History QoS
       resource_limits: None, // nor Resource Limits, see Figure 8.30 in RTPS spec 2.5
       lifespan: self.lifespan,
-
+      data_representation: self.data_representation,
       #[cfg(feature = "security")]
       property: None, // TODO: no property QoS?
     }
@@ -468,6 +467,8 @@ impl ParameterListable for DiscoveredReaderData {
           presentation: _,
           lifespan: _,
 
+          data_representation: _,
+
           service_instance_name,
           related_datawriter_key,
           topic_aliases,
@@ -622,6 +623,8 @@ pub struct PublicationBuiltinTopicData {
   pub destination_order: Option<DestinationOrder>,
   pub presentation: Option<Presentation>,
 
+  pub data_representation: Option<DataRepresentation>,
+
   // From Remote Procedure Call over DDS:
   pub service_instance_name: Option<String>,
   pub related_datareader_key: Option<GUID>,
@@ -664,6 +667,8 @@ impl PublicationBuiltinTopicData {
       related_datareader_key: None, // TODO
       topic_aliases: None,          // TODO
 
+      data_representation: None,
+
       #[cfg(feature = "security")]
       security_info: _security_info,
     }
@@ -693,6 +698,7 @@ impl PublicationBuiltinTopicData {
     self.ownership = qos.ownership;
     self.destination_order = qos.destination_order;
     self.presentation = qos.presentation;
+    self.data_representation = qos.data_representation;
   }
 
   pub fn qos(&self) -> QosPolicies {
@@ -709,6 +715,7 @@ impl PublicationBuiltinTopicData {
       history: None,         // PublicationBuiltinTopicData does not contain History QoS
       resource_limits: None, // nor Resource Limits, see Figure 8.30 in RTPS spec 2.5
       lifespan: self.lifespan,
+      data_representation: self.data_representation,
       #[cfg(feature = "security")]
       property: None, // TODO: no property Qos?
     }
@@ -916,6 +923,8 @@ impl ParameterListable for DiscoveredWriterData {
           presentation: _,
           lifespan: _,
 
+          data_representation: _,
+          
           service_instance_name,
           related_datareader_key,
           topic_aliases,
@@ -1023,6 +1032,9 @@ pub struct TopicBuiltinTopicData {
   pub history: Option<History>,
   pub resource_limits: Option<ResourceLimits>,
   pub ownership: Option<Ownership>,
+
+  pub data_representation: Option<DataRepresentation>,
+
 }
 
 impl TopicBuiltinTopicData {
@@ -1042,6 +1054,8 @@ impl TopicBuiltinTopicData {
       history: qos.history(),
       resource_limits: qos.resource_limits(),
       ownership: qos.ownership(),
+      
+      data_representation: qos.data_representation(),
     }
   }
 }
@@ -1061,6 +1075,9 @@ impl HasQoSPolicy for TopicBuiltinTopicData {
       history: self.history,
       resource_limits: self.resource_limits,
       lifespan: self.lifespan,
+
+      data_representation: self.data_representation,
+
       #[cfg(feature = "security")]
       property: None, // TODO: no property Qos?
     }
@@ -1186,6 +1203,7 @@ impl PlCdrSerialize for DiscoveredTopicData {
           presentation: _,
           lifespan: _,
           resource_limits: _,
+          data_representation: _,
         },
     } = self;
 

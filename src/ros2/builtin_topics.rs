@@ -2,7 +2,7 @@ use crate::{
   dds::qos::{
     policy::{
       Deadline, DestinationOrder, Durability, History, LatencyBudget, Lifespan, Liveliness,
-      Ownership, Reliability,
+      Ownership, Reliability, DataRepresentation
     },
     QosPolicies,
   },
@@ -33,6 +33,7 @@ impl ROSDiscoveryTopic {
     lifespan: Some(Lifespan {
       duration: Duration::INFINITE,
     }),
+    data_representation: Some(DataRepresentation::XcorData),
     #[cfg(feature = "security")]
     property: None,
   };
@@ -71,6 +72,7 @@ impl ParameterEventsTopic {
     history: Some(History::KeepLast { depth: 1 }),
     resource_limits: None,
     lifespan: None,
+    data_representation: Some(DataRepresentation::XcorData),
     #[cfg(feature = "security")]
     property: None,
   };
@@ -115,6 +117,7 @@ impl RosOutTopic {
     lifespan: Some(Lifespan {
       duration: Duration::from_secs(10),
     }),
+    data_representation: Some(DataRepresentation::XcorData),
     #[cfg(feature = "security")]
     property: None,
   };
