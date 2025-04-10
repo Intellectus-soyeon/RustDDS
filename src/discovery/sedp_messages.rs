@@ -1127,10 +1127,6 @@ impl DiscoveredTopicData {
   pub fn topic_name(&self) -> &String {
     &self.topic_data.name
   }
-
-  pub fn type_name(&self) -> &String {
-    &self.topic_data.type_name
-  }
 }
 
 impl Keyed for DiscoveredTopicData {
