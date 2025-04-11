@@ -447,6 +447,9 @@ impl QosPolicies {
     // check Data Representation
     if let (Some(off), Some(req)) = (self.data_representation, other.data_representation) {
       if off != req {
+        warn!("########### QoS\n
+        self: {:?} \n 
+        req: {:?}", self, other);
         return Some(QosPolicyId::DataRepresentation);
       }
     }
@@ -949,9 +952,9 @@ pub mod policy {
 
   #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Writable, Readable)]
   pub enum DataRepresentation {
-    XcorData,
-    XmlData,
-    Xcor2Data,
+    XcorData = 0,
+    XmlData = 1,
+    Xcor2Data = 2,
   }
 
   #[cfg(feature = "security")]

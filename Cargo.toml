@@ -85,6 +85,8 @@ cryptoki = { version = "0.9", optional = true }
 # pnet = { version = "0.35.0", default-features = false, features = ["std", "pnet_datalink"] }
 # pnet_sys = { version = "0.35.0", default-features = false }
 
+tracing = "0.1"
+tracing-subscriber = "0.3"
 
 [target.'cfg(windows)'.dependencies]
 local-ip-address = "0.6.1"
