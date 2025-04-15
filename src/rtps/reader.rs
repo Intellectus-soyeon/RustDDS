@@ -750,6 +750,20 @@ impl Reader {
       // stateless reader: nothing to do before making cache change
     }
 
+    // check lifespan 
+    if let Some(source_ts) = write_options.source_timestamp() {
+      if let Some(lifespan) = self.qos().lifespan {
+        let elapsed = receive_timestamp.duration_since(source_ts);
+        if elapsed > lifespan.duration {
+          info!(
+            "process_received_data: Dropping expired sample from {:?}, writer_sn={:?}, lifespan={:?}, elapsed={:?}",
+            writer_guid, writer_sn, lifespan.duration, elapsed
+          );
+          return;
+        }
+      }
+    }
+
     self.make_cache_change(
       dds_data,
       receive_timestamp,
@@ -1463,9 +1477,7 @@ mod tests {
   use std::sync::RwLock;
 
   use crate::{
-    dds::{qos::policy::Reliability, statusevents::sync_status_channel, typedesc::TypeDesc},
-    structure::{dds_cache::DDSCache, guid::EntityKind},
-    QosPolicyBuilder,
+    dds::{qos::policy::Reliability, statusevents::sync_status_channel, typedesc::TypeDesc}, policy::Lifespan, structure::{dds_cache::DDSCache, guid::EntityKind}, QosPolicyBuilder
   };
   use super::*;
 
@@ -1985,5 +1997,98 @@ mod tests {
     // 3. Verify that the reader does not contain a writer proxy for the writer that
     // we attempted to add
     assert!(reader.matched_writer(writer_guid).is_none());
+  }
+
+  #[test]
+  fn test_reader_drops_data_when_lifespan_expired() {
+    // Create the DDS cache and the topic
+    let dds_cache = Arc::new(RwLock::new(DDSCache::new()));
+    let topic_name = "test_name";
+
+    // lifespan : 2sec
+    let lifespan_qos = QosPolicyBuilder::new()
+      .lifespan(Lifespan {
+        duration: Duration::from(StdDuration::from_secs(2)),
+      })
+      .build();
+    
+    let topic_cache_handle = dds_cache.write().unwrap().add_new_topic(
+      topic_name.to_string(),
+      TypeDesc::new("test_type".to_string()),
+      &lifespan_qos,
+    );
+
+    // creaete mio channel
+    let (notification_sender, notification_receiver) = mio_channel::sync_channel::<()>(100);
+    let (_notification_event_source, notification_event_sender) =
+      mio_source::make_poll_channel().unwrap();
+    let data_reader_waker = Arc::new(Mutex::new(None));
+
+    // Create status channel
+    let (status_sender, _status_receiver) = sync_status_channel::<DataReaderStatus>(4).unwrap();
+    let (participant_status_sender, _participant_status_receiver) =
+      sync_status_channel(16).unwrap();
+
+    // Create reader command channel
+    let (_reader_command_sender, reader_command_receiver) =
+      mio_channel::sync_channel::<ReaderCommand>(10);
+
+    // Then finally create the reader
+    let reader_guid = GUID::dummy_test_guid(EntityKind::READER_NO_KEY_USER_DEFINED);
+    let reader_ing = ReaderIngredients {
+      guid: reader_guid,
+      notification_sender,
+      status_sender,
+      topic_name: topic_name.to_string(),
+      type_name: "test_type".to_string(),
+      topic_cache_handle,
+      like_stateless: false,
+      qos_policy: lifespan_qos.clone(),
+      data_reader_command_receiver: reader_command_receiver,
+      data_reader_waker,
+      poll_event_sender: notification_event_sender,
+      security_plugins: None,
+    };
+    let mut reader = Reader::new(
+      reader_ing,
+      Rc::new(UDPSender::new(0).unwrap()),
+      mio_extras::timer::Builder::default().build(),
+      participant_status_sender,
+    );
+
+    // Add info of a matched writer to the reader
+    let writer_guid = GUID::dummy_test_guid(EntityKind::WRITER_NO_KEY_USER_DEFINED);
+
+    let mr_state = MessageReceiverState {
+      source_guid_prefix: writer_guid.prefix,
+      source_timestamp: Some(Timestamp::from(Timestamp::now() - Duration::from_secs(10))), // 10초 전 timestamp
+      ..Default::default()
+    };
+
+    reader.matched_writer_add(
+      writer_guid,
+      EntityId::UNKNOWN,
+      mr_state.unicast_reply_locator_list.clone(),
+      mr_state.multicast_reply_locator_list.clone(),
+      &lifespan_qos,
+    );
+
+    // Construct expired data
+    let data = Data {
+      reader_id: reader_guid.entity_id,
+      writer_id: writer_guid.entity_id,
+      ..Data::default()
+    };
+    let data_flags = BitFlags::<DATA_Flags>::from_flag(DATA_Flags::Data);
+
+
+    // 4. Feed the data for the reader to handle
+    reader.handle_data_msg(data, data_flags, &mr_state);
+
+    // 5. Verify that the reader sends a notification about the new data
+    assert!(
+      notification_receiver.try_recv().is_err(),
+      "Lifespan-expired data triggered a notification unexpectedly"
+    );
   }
 }
