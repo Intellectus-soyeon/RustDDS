@@ -301,6 +301,8 @@ pub(crate) fn publication_builtin_topic_data() -> Option<PublicationBuiltinTopic
     related_datareader_key: None,
     service_instance_name: None,
     topic_aliases: None,
+
+    data_representation: None,
     #[cfg(feature = "security")]
     security_info: None,
   };
@@ -338,6 +340,8 @@ pub(crate) fn topic_data() -> Option<TopicBuiltinTopicData> {
       max_samples_per_instance: 15,
     }),
     ownership: Some(Ownership::Exclusive { strength: 432 }),
+
+    data_representation: None,
   };
 
   Some(topic_data)

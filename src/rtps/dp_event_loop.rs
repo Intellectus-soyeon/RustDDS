@@ -1191,6 +1191,7 @@ mod tests {
         status_sender,
         topic_cache_handle: topic_cache.clone(),
         topic_name: "test".to_string(),
+        type_name: "test_type".to_string(),
         like_stateless: false,
         qos_policy: QosPolicies::qos_none(),
         data_reader_command_receiver: reader_command_receiver,

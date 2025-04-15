@@ -1186,6 +1186,7 @@ mod tests {
       notification_sender,
       status_sender,
       topic_name: "test".to_string(),
+      type_name: "test".to_string(),
       topic_cache_handle: topic_cache_handle.clone(),
       like_stateless: false,
       qos_policy,
