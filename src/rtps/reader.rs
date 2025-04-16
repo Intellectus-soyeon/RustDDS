@@ -716,6 +716,21 @@ impl Reader {
       self.reliability,
       self.like_stateless,
     );
+
+    // check Lifespan 
+    if let Some(source_ts) = write_options.source_timestamp() {
+      if let Some(lifespan) = self.qos().lifespan {
+        let elapsed = receive_timestamp.duration_since(source_ts);
+        if elapsed > lifespan.duration {
+          info!(
+            "process_received_data: Dropping expired sample from {:?}, writer_sn={:?}, lifespan={:?}, elapsed={:?}",
+            writer_guid, writer_sn, lifespan.duration, elapsed
+          );
+          return;
+        }
+      }
+    }
+    
     if !self.like_stateless {
       let my_entity_id = self.my_guid.entity_id; // to please borrow checker
       if let Some(writer_proxy) = self.matched_writer_mut(writer_guid) {
@@ -748,20 +763,6 @@ impl Reader {
       }
     } else {
       // stateless reader: nothing to do before making cache change
-    }
-
-    // check lifespan 
-    if let Some(source_ts) = write_options.source_timestamp() {
-      if let Some(lifespan) = self.qos().lifespan {
-        let elapsed = receive_timestamp.duration_since(source_ts);
-        if elapsed > lifespan.duration {
-          info!(
-            "process_received_data: Dropping expired sample from {:?}, writer_sn={:?}, lifespan={:?}, elapsed={:?}",
-            writer_guid, writer_sn, lifespan.duration, elapsed
-          );
-          return;
-        }
-      }
     }
 
     self.make_cache_change(
